@@ -3,9 +3,9 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from scipy.spatial import KDTree
 
 import math
-
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
@@ -21,7 +21,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -31,10 +31,14 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # rospy.Subscriber('/traffic_waypoint', self.traffic_cb)
+        # rospy.Subscriber('/obstacle_waypoint', self.obstacle_cb)
 
-
-        self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        self.final_waypoints_pub = rospy.Publisher('final_waypoints',
+                                                   Lane,
+                                                   queue_size=1)
+        self.base_waypoints = None
 
         # TODO: Add other member variables you need below
 
@@ -45,8 +49,11 @@ class WaypointUpdater(object):
         pass
 
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
+        self.base_waypoints = waypoints
+        if not self.waypoints_2d:
+            self.waypoints_2d = [[
+                waypoints.pose.pose.position.x, waypoints.pose.pose.position.y
+            ] for waypoint in waypoints.waypoints]
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -64,9 +71,11 @@ class WaypointUpdater(object):
 
     def distance(self, waypoints, wp1, wp2):
         dist = 0
-        dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
-        for i in range(wp1, wp2+1):
-            dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
+        dl = lambda a, b: math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2 + (a.z - b.
+                                                                       z)**2)
+        for i in range(wp1, wp2 + 1):
+            dist += dl(waypoints[wp1].pose.pose.position,
+                       waypoints[i].pose.pose.position)
             wp1 = i
         return dist
 
